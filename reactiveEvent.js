@@ -38,21 +38,26 @@ ReactiveEvent = function() {
 
     var api = {
         on: function(name, cb) {
-            var firstRun = true;
-            var ev = events[name];
-            if(!ev) {
-                ev = events[name] = {dep: new Deps.Dependency}
-            }
+            var self = this;
+            _.each((_.isArray(name) ? name : [name]), addEventHandler);
 
-            if(cb) {
-                Deps.autorun(function () {
+            function addEventHandler(name) {
+                var firstRun = true;
+                var ev = events[name];
+                if (!ev) {
+                    ev = events[name] = {dep: new Deps.Dependency}
+                }
+
+                if (cb) {
+                    Deps.autorun(function () {
+                        ev.dep.depend();
+                        firstRun || cb.apply(self, [{name:name}].concat(ev.args));
+                        firstRun = false;
+                    });
+                } else {
                     ev.dep.depend();
-                    firstRun || cb.apply(undefined, ev.args);
-                    firstRun = false;
-                });
-            } else {
-                ev.dep.depend();
-                return ev.args || [];
+                    return ev.args || [];
+                }
             }
         },
         fire: function(name) {
